@@ -50,14 +50,15 @@ impl log::Log for Logsy {
         let ts = Local::now().format("%Y-%m-%d %H:%M:%S");
         let mut conf = self.0.lock().unwrap();
         let color = match record.metadata().level() {
-            Level::Error | Level::Warn => Color::Red,
-            _ => Color::Green,
+            Level::Error | Level::Warn => Some(Color::Red),
+            Level::Info => Some(Color::Green),
+            _ => None,
         };
 
         if conf.echo {
             let mut stdout = StandardStream::stdout(ColorChoice::Always);
             print!("[{}][", ts);
-            let _ = stdout.set_color(ColorSpec::new().set_fg(Some(color)));
+            let _ = stdout.set_color(ColorSpec::new().set_fg(color));
             print!("{}", record.level());
             let _ = stdout.reset();
             println!("] {}", record.args());
