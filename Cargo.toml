@@ -1,0 +1,17 @@
+[package]
+name = "logsy"
+description = "Just logging as it should be"
+version = "1.0.0"
+edition = "2018"
+license = "MIT OR Apache-2.0"
+keywords = ["log", "simplelog", "filelog", "logging"]
+documentation = "https://docs.rs/logsy/"
+repository = "https://github.com/vdudouyt/logsy"
+
+[dependencies]
+chrono = { version = "0.4.41", default-features = false, features = ["clock", "iana-time-zone", "now"] }
+log = "0.4.27"
+termcolor = "1.4.1"
+
+[dev-dependencies]
+tempdir = "0.3.7"
