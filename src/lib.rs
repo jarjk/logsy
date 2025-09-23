@@ -81,7 +81,7 @@ impl log::Log for Logsy {
             let level = format!("{level_style}{:5}{level_style:#}", record.level());
 
             let ts = format!("{italic}{ts}{italic:#}");
-            println!("{dim}[{ts}{dim:#}{level} {mod_p}{dim}]{dim:#} {msg}");
+            eprintln!("{dim}[{ts}{dim:#}{level} {mod_p}{dim}]{dim:#} {msg}");
         }
         if let Some(file) = &mut conf.file {
             let _ = writeln!(file, "[{ts} {:5} {mod_p}] {msg}", record.level());
