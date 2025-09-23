@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
+    use log::{debug, info, LevelFilter};
     use tempdir::TempDir;
-    use log::{ info, debug, LevelFilter };
     #[test]
     fn test_logsy() {
         let dir = TempDir::new("my_directory_prefix").unwrap();

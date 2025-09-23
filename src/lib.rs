@@ -11,18 +11,18 @@
 //!
 //! logsy::set_echo(true);
 //! logsy::set_filename(Some("logs/main.log")).expect("Couldn't open main.log");
-//! 
+//!
 //! info!("Application has just started");
 //! warn!("Dereferencing null pointers harms");
 //! error!("This application got a boo-boo and going to be terminated");
 //! ```
 
-use log::{Record, Level, Metadata, LevelFilter};
-use std::sync::Mutex;
-use std::path::Path;
-use std::fs::{ File, OpenOptions };
-use std::io::Write;
 use chrono::Local;
+use log::{Level, LevelFilter, Metadata, Record};
+use std::fs::{File, OpenOptions};
+use std::io::Write;
+use std::path::Path;
+use std::sync::Mutex;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 struct Logsy(Mutex<LogsyConf>);
@@ -71,14 +71,19 @@ impl log::Log for Logsy {
     fn flush(&self) {}
 }
 
-static LOGSY: Logsy = Logsy(Mutex::new(LogsyConf { installed: false, echo: false, file: None, level: None }));
+static LOGSY: Logsy = Logsy(Mutex::new(LogsyConf {
+    installed: false,
+    echo: false,
+    file: None,
+    level: None,
+}));
 
 fn check_installed() {
     let installed = LOGSY.0.lock().unwrap().installed;
     if !installed {
-       LOGSY.0.lock().unwrap().installed = true;
-       log::set_logger(&LOGSY).unwrap();
-       set_level(LevelFilter::Info);
+        LOGSY.0.lock().unwrap().installed = true;
+        log::set_logger(&LOGSY).unwrap();
+        set_level(LevelFilter::Info);
     }
 }
 
@@ -104,7 +109,11 @@ pub fn set_filename(filename: Option<&str>) -> Option<()> {
                 eprintln!("Couldn't create {parent_path}: {err}");
                 return None;
             }
-            let file = OpenOptions::new().create(true).append(true).open(filename).unwrap();
+            let file = OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(filename)
+                .unwrap();
             LOGSY.0.lock().unwrap().file = Some(file);
         }
     } else {
