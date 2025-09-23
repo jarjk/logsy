@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod tests {
-    use log::{debug, info, LevelFilter};
+    use log::{LevelFilter, debug, info};
     use tempdir::TempDir;
     #[test]
     fn test_logsy() {
         let dir = TempDir::new("my_directory_prefix").unwrap();
         let filename = dir.path().join("foo.log");
-        logsy::set_filename(Some(filename.to_str().unwrap()));
+        logsy::set_filename(filename.to_str().unwrap(), true);
         info!("Test123");
         let contents = std::fs::read_to_string(&filename).unwrap();
         assert!(contents.contains("Test123"));
@@ -30,7 +30,7 @@ mod tests {
         assert!(contents.contains("DEBUG"));
 
         let filename = dir.path().join("foo2.log");
-        logsy::set_filename(Some(filename.to_str().unwrap()));
+        logsy::set_filename(filename.to_str().unwrap(), false);
         info!("Test127");
         info!("Test128");
         info!("Test129");

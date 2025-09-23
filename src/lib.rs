@@ -126,27 +126,23 @@ pub fn set_echo(echo: bool) {
 /// This function can be called again without restarting the app if you need
 /// (e.g. for implementing log rotation).
 /// If parent dir doesn't exists, it's going to be created.
-pub fn set_filename(filename: Option<&str>) -> Option<()> {
+pub fn set_filename(filename: &str, append: bool) -> Option<()> {
     check_installed();
 
-    if let Some(filename) = filename {
-        let path = Path::new(filename);
-        let parent_path: &str = path.parent()?.to_str()?;
-        if !parent_path.is_empty() {
-            let result = std::fs::create_dir_all(parent_path);
-            if let Err(err) = result {
-                eprintln!("Couldn't create {parent_path}: {err}");
-                return None;
-            }
-            let file = OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(filename)
-                .unwrap();
-            LOGSY.0.lock().unwrap().file = Some(file);
+    let path = Path::new(filename);
+    let parent_path: &str = path.parent()?.to_str()?;
+    if !parent_path.is_empty() {
+        let result = std::fs::create_dir_all(parent_path);
+        if let Err(err) = result {
+            eprintln!("Couldn't create {parent_path}: {err}");
+            return None;
         }
-    } else {
-        LOGSY.0.lock().unwrap().file = None;
+        let file = OpenOptions::new()
+            .create(true)
+            .append(append)
+            .open(filename)
+            .unwrap();
+        LOGSY.0.lock().unwrap().file = Some(file);
     }
 
     Some(())
