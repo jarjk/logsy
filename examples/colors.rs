@@ -1,7 +1,7 @@
 use log::*;
 
 fn main() {
-    logsy::set_echo(true);
+    logsy::to_console();
 
     trace!("Library function called");
     debug!("Auth attempt");

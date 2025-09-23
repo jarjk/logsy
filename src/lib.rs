@@ -1,16 +1,16 @@
 //!
 //! `logsy` provides a simple facility for your daily logging tasks.
-//! - [`set_echo`] log into stdout
-//! - [`set_filename`] log into a file (can be combined with [`set_echo`])
+//! - [`to_console`] log to `stderr`
+//! - [`to_file`] log into a file (can be combined with [`to_console`])
 //! - [`set_level`] set log level filter (defaults to `LevelFilter::Info`)
 //!
-//! Calling `set_echo` or `set_filename` for a first time gets our logging handler automatically installed.
+//! Calling `to_console` or `to_file` for a first time gets our logging handler automatically installed.
 //! # Usage
 //! ```
 //! use log::*;
 //!
-//! logsy::set_echo(true);
-//! logsy::set_filename(Some("logs/main.log")).expect("Couldn't open main.log");
+//! logsy::to_console();
+//! logsy::to_file("logs/main.log", true).expect("couldn't open main.log");
 //!
 //! info!("Application has just started");
 //! warn!("Dereferencing null pointers harms");
@@ -33,8 +33,8 @@ struct Logsy(Mutex<LogsyConf>);
 
 struct LogsyConf {
     installed: bool,
-    echo: bool,
-    file: Option<File>,
+    to_stderr: bool,
+    to_file: Option<File>,
     level: Option<Level>,
 }
 
@@ -67,7 +67,7 @@ impl log::Log for Logsy {
             Level::Error => Some(Color::Ansi(AnsiColor::Red)),
         };
 
-        if conf.echo {
+        if conf.to_stderr {
             #[cfg(feature = "styled")]
             let [level_style, dim, italic] = {
                 [
@@ -83,7 +83,7 @@ impl log::Log for Logsy {
             let ts = format!("{italic}{ts}{italic:#}");
             eprintln!("{dim}[{ts}{dim:#}{level} {mod_p}{dim}]{dim:#} {msg}");
         }
-        if let Some(file) = &mut conf.file {
+        if let Some(file) = &mut conf.to_file {
             let _ = writeln!(file, "[{ts} {:5} {mod_p}] {msg}", record.level());
             let _ = file.flush();
         }
@@ -93,8 +93,8 @@ impl log::Log for Logsy {
 
 static LOGSY: Logsy = Logsy(Mutex::new(LogsyConf {
     installed: false,
-    echo: false,
-    file: None,
+    to_stderr: false,
+    to_file: None,
     level: None,
 }));
 
@@ -117,20 +117,19 @@ fn check_installed() {
 }
 
 /// Start logging into `stdout`
-pub fn set_echo(echo: bool) {
+pub fn to_console() {
     check_installed();
-    LOGSY.0.lock().unwrap().echo = echo;
+    LOGSY.0.lock().unwrap().to_stderr = true;
 }
 
 /// Start logging into a specified file.
 /// This function can be called again without restarting the app if you need
 /// (e.g. for implementing log rotation).
 /// If parent dir doesn't exists, it's going to be created.
-pub fn set_filename(filename: &str, append: bool) -> Option<()> {
+pub fn to_file(path: impl AsRef<Path>, append: bool) -> Option<()> {
     check_installed();
 
-    let path = Path::new(filename);
-    let parent_path: &str = path.parent()?.to_str()?;
+    let parent_path: &str = path.as_ref().parent()?.to_str()?;
     if !parent_path.is_empty() {
         let result = std::fs::create_dir_all(parent_path);
         if let Err(err) = result {
@@ -139,10 +138,11 @@ pub fn set_filename(filename: &str, append: bool) -> Option<()> {
         }
         let file = OpenOptions::new()
             .create(true)
+            .write(true)
             .append(append)
-            .open(filename)
+            .open(path)
             .unwrap();
-        LOGSY.0.lock().unwrap().file = Some(file);
+        LOGSY.0.lock().unwrap().to_file = Some(file);
     }
 
     Some(())

@@ -6,7 +6,7 @@ mod tests {
     fn test_logsy() {
         let dir = TempDir::new("my_directory_prefix").unwrap();
         let filename = dir.path().join("foo.log");
-        logsy::set_filename(filename.to_str().unwrap(), true);
+        logsy::to_file(&filename, true);
         info!("Test123");
         let contents = std::fs::read_to_string(&filename).unwrap();
         assert!(contents.contains("Test123"));
@@ -30,7 +30,7 @@ mod tests {
         assert!(contents.contains("DEBUG"));
 
         let filename = dir.path().join("foo2.log");
-        logsy::set_filename(filename.to_str().unwrap(), false);
+        logsy::to_file(&filename, false);
         info!("Test127");
         info!("Test128");
         info!("Test129");
