@@ -17,12 +17,12 @@
 //! error!("This application got a boo-boo and going to be terminated");
 //! ```
 
-use chrono::Local;
 use log::{Level, LevelFilter, Metadata, Record};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::sync::Mutex;
+use std::time::SystemTime;
 use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 struct Logsy(Mutex<LogsyConf>);
@@ -47,7 +47,7 @@ impl log::Log for Logsy {
         if !self.enabled(record.metadata()) {
             return;
         }
-        let ts = Local::now().format("%Y-%m-%d %H:%M:%S");
+        let ts = humantime::format_rfc3339_micros(SystemTime::now()).to_string();
         let mut conf = self.0.lock().unwrap();
         let color = match record.metadata().level() {
             Level::Error | Level::Warn => Some(Color::Red),
