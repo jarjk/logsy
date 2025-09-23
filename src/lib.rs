@@ -17,13 +17,16 @@
 //! error!("This application got a boo-boo and going to be terminated");
 //! ```
 
+#[cfg(feature = "styled")]
 use anstyle::{AnsiColor, Color, Style};
 use log::{Level, LevelFilter, Metadata, Record};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
+#[cfg(feature = "env")]
 use std::str::FromStr;
 use std::sync::Mutex;
+#[cfg(feature = "time")]
 use std::time::SystemTime;
 
 struct Logsy(Mutex<LogsyConf>);
@@ -48,10 +51,14 @@ impl log::Log for Logsy {
         if !self.enabled(record.metadata()) {
             return;
         }
-        let ts = humantime::format_rfc3339_micros(SystemTime::now()).to_string();
+        #[cfg(feature = "time")]
+        let ts = format!("{} ", humantime::format_rfc3339_micros(SystemTime::now())); // notice the extra space
+        #[cfg(not(feature = "time"))]
+        let ts = String::new();
         let mod_p = record.module_path().unwrap_or_default();
         let msg = record.args();
         let mut conf = self.0.lock().unwrap();
+        #[cfg(feature = "styled")]
         let color = match record.metadata().level() {
             Level::Trace => Some(Color::Ansi(AnsiColor::Magenta)),
             Level::Debug => Some(Color::Ansi(AnsiColor::Blue)),
@@ -61,13 +68,20 @@ impl log::Log for Logsy {
         };
 
         if conf.echo {
-            let level_style = Style::new().fg_color(color).bold();
+            #[cfg(feature = "styled")]
+            let [level_style, dim, italic] = {
+                [
+                    Style::new().fg_color(color).bold(),
+                    Style::new().dimmed(),
+                    Style::new().italic(),
+                ]
+            };
+            #[cfg(not(feature = "styled"))]
+            let [level_style, dim, italic] = { [String::new(), String::new(), String::new()] };
             let level = format!("{level_style}{:5}{level_style:#}", record.level());
 
-            let dim = Style::new().dimmed();
-            let italic = Style::new().italic();
             let ts = format!("{italic}{ts}{italic:#}");
-            println!("{dim}[{ts}{dim:#} {level} {mod_p}{dim}]{dim:#} {msg}");
+            println!("{dim}[{ts}{dim:#}{level} {mod_p}{dim}]{dim:#} {msg}");
         }
         if let Some(file) = &mut conf.file {
             let _ = writeln!(file, "[{ts} {:5} {mod_p}] {msg}", record.level());
@@ -90,13 +104,14 @@ fn check_installed() {
         LOGSY.0.lock().unwrap().installed = true;
         log::set_logger(&LOGSY).unwrap();
 
-        let log_level = if let Ok(env_log_level) = std::env::var("RUST_LOG") {
-            LevelFilter::from_str(&env_log_level).unwrap_or_else(|err| {
+        #[allow(unused_mut)] // is used if `env`
+        let mut log_level = LevelFilter::Info;
+        #[cfg(feature = "env")]
+        if let Ok(env_log_level) = std::env::var("RUST_LOG") {
+            log_level = LevelFilter::from_str(&env_log_level).unwrap_or_else(|err| {
                 panic!("{err}: invalid RUST_LOG env var value: {env_log_level:?}")
-            })
-        } else {
-            LevelFilter::Info
-        };
+            });
+        }
         set_level(log_level);
     }
 }
