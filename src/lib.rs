@@ -22,6 +22,7 @@ use log::{Level, LevelFilter, Metadata, Record};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
+use std::str::FromStr;
 use std::sync::Mutex;
 use std::time::SystemTime;
 
@@ -88,7 +89,15 @@ fn check_installed() {
     if !installed {
         LOGSY.0.lock().unwrap().installed = true;
         log::set_logger(&LOGSY).unwrap();
-        set_level(LevelFilter::Info);
+
+        let log_level = if let Ok(env_log_level) = std::env::var("RUST_LOG") {
+            LevelFilter::from_str(&env_log_level).unwrap_or_else(|err| {
+                panic!("{err}: invalid RUST_LOG env var value: {env_log_level:?}")
+            })
+        } else {
+            LevelFilter::Info
+        };
+        set_level(log_level);
     }
 }
 

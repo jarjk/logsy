@@ -2,7 +2,6 @@ use log::*;
 
 fn main() {
     logsy::set_echo(true);
-    logsy::set_level(LevelFilter::Trace);
 
     trace!("Library function called");
     debug!("Auth attempt");
