@@ -15,8 +15,8 @@ log = "0.4.28"
 
 [features]
 default = ["time", "styled", "env"]
-time = ["humantime"]
-styled = ["anstyle"]
+time = ["dep:humantime"]
+styled = ["dep:anstyle"]
 env = []
 
 [dev-dependencies]
