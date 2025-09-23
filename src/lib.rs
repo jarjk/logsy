@@ -1,21 +1,4 @@
-//!
-//! `logsy` provides a simple facility for your daily logging tasks.
-//! - [`to_console`] log to `stderr`
-//! - [`to_file`] log into a file (can be combined with [`to_console`])
-//! - [`set_level`] set log level filter (defaults to `LevelFilter::Info`)
-//!
-//! Calling `to_console` or `to_file` for a first time gets our logging handler automatically installed.
-//! # Usage
-//! ```
-//! use log::*;
-//!
-//! logsy::to_console();
-//! logsy::to_file("logs/main.log", true).expect("couldn't open main.log");
-//!
-//! info!("Application has just started");
-//! warn!("Dereferencing null pointers harms");
-//! error!("This application got a boo-boo and going to be terminated");
-//! ```
+#![doc = include_str!("../README.md")]
 
 #[cfg(feature = "styled")]
 use anstyle::{AnsiColor, Color, Style};
@@ -98,7 +81,12 @@ static LOGSY: Logsy = Logsy(Mutex::new(LogsyConf {
     level: None,
 }));
 
-fn check_installed() {
+/// checks whether it's already installed, does it so if not
+/// # Panics
+/// - if can't access global state: can't lock mutex
+/// - if can't set logger
+/// - if `feature(env)` and `RUST_LOG` is an invalid log level
+fn ensure_installed() {
     let installed = LOGSY.0.lock().unwrap().installed;
     if !installed {
         LOGSY.0.lock().unwrap().installed = true;
@@ -116,39 +104,44 @@ fn check_installed() {
     }
 }
 
-/// Start logging into `stdout`
+/// Start logging to `stderr`
+/// # Panics
+/// - if can't `ensure_installed`
+/// - if can't access global state: can't lock mutex
 pub fn to_console() {
-    check_installed();
+    ensure_installed();
     LOGSY.0.lock().unwrap().to_stderr = true;
 }
 
 /// Start logging into a specified file.
 /// This function can be called again without restarting the app if you need
 /// (e.g. for implementing log rotation).
-/// If parent dir doesn't exists, it's going to be created.
-pub fn to_file(path: impl AsRef<Path>, append: bool) -> Option<()> {
-    check_installed();
+/// If parent dir doesn't exists, it will be created.
+/// # Panics
+/// - if can't `ensure_installed`
+/// - if can't open log file
+/// - if can't access global state: can't lock mutex
+pub fn to_file(path: impl AsRef<Path>, append: bool) {
+    ensure_installed();
 
-    let parent_path: &str = path.as_ref().parent()?.to_str()?;
-    if !parent_path.is_empty() {
-        let result = std::fs::create_dir_all(parent_path);
-        if let Err(err) = result {
-            eprintln!("Couldn't create {parent_path}: {err}");
-            return None;
-        }
-        let file = OpenOptions::new()
-            .create(true)
-            .write(true)
-            .append(append)
-            .open(path)
-            .unwrap();
-        LOGSY.0.lock().unwrap().to_file = Some(file);
+    if let Some(dirname) = path.as_ref().parent()
+        && !dirname.exists()
+    {
+        std::fs::create_dir(dirname)
+            .unwrap_or_else(|err| panic!("couldn't create {dirname:?}: {err}"));
     }
-
-    Some(())
+    let file = OpenOptions::new()
+        .create(true)
+        .write(true)
+        .append(append)
+        .open(path)
+        .unwrap();
+    LOGSY.0.lock().unwrap().to_file = Some(file);
 }
 
 /// Set log level filter
+/// # Panics
+/// if can't access global state: can't lock mutex
 pub fn set_level(filter: LevelFilter) {
     log::set_max_level(filter);
     LOGSY.0.lock().unwrap().level = filter.to_level();
