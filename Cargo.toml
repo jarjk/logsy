@@ -2,7 +2,7 @@
 name = "logsy"
 description = "Just logging as it should be"
 version = "1.0.1"
-edition = "2018"
+edition = "2024"
 license = "MIT OR Apache-2.0"
 keywords = ["log", "simplelog", "filelog", "logging"]
 documentation = "https://docs.rs/logsy/"
@@ -11,7 +11,7 @@ repository = "https://github.com/vdudouyt/logsy"
 [dependencies]
 anstyle = "1.0.11"
 humantime = "2.3.0"
-log = "0.4.27"
+log = "0.4.28"
 
 [dev-dependencies]
 tempdir = "0.3.7"
