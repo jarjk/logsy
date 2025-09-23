@@ -17,13 +17,13 @@
 //! error!("This application got a boo-boo and going to be terminated");
 //! ```
 
+use anstyle::{AnsiColor, Color, Style};
 use log::{Level, LevelFilter, Metadata, Record};
 use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::sync::Mutex;
 use std::time::SystemTime;
-use termcolor::{Color, ColorChoice, ColorSpec, StandardStream, WriteColor};
 
 struct Logsy(Mutex<LogsyConf>);
 
@@ -48,23 +48,28 @@ impl log::Log for Logsy {
             return;
         }
         let ts = humantime::format_rfc3339_micros(SystemTime::now()).to_string();
+        let mod_p = record.module_path().unwrap_or_default();
+        let msg = record.args();
         let mut conf = self.0.lock().unwrap();
         let color = match record.metadata().level() {
-            Level::Error | Level::Warn => Some(Color::Red),
-            Level::Info => Some(Color::Green),
-            _ => None,
+            Level::Trace => Some(Color::Ansi(AnsiColor::Magenta)),
+            Level::Debug => Some(Color::Ansi(AnsiColor::Blue)),
+            Level::Info => Some(Color::Ansi(AnsiColor::Green)),
+            Level::Warn => Some(Color::Ansi(AnsiColor::Yellow)),
+            Level::Error => Some(Color::Ansi(AnsiColor::Red)),
         };
 
         if conf.echo {
-            let mut stdout = StandardStream::stdout(ColorChoice::Always);
-            print!("[{ts}][");
-            let _ = stdout.set_color(ColorSpec::new().set_fg(color));
-            print!("{}", record.level());
-            let _ = stdout.reset();
-            println!("] {}", record.args());
+            let level_style = Style::new().fg_color(color).bold();
+            let level = format!("{level_style}{:5}{level_style:#}", record.level());
+
+            let dim = Style::new().dimmed();
+            let italic = Style::new().italic();
+            let ts = format!("{italic}{ts}{italic:#}");
+            println!("{dim}[{ts}{dim:#} {level} {mod_p}{dim}]{dim:#} {msg}");
         }
         if let Some(file) = &mut conf.file {
-            let _ = writeln!(file, "[{}][{}] {}", ts, record.level(), record.args());
+            let _ = writeln!(file, "[{ts} {:5} {mod_p}] {msg}", record.level());
             let _ = file.flush();
         }
     }
