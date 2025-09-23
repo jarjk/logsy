@@ -57,7 +57,7 @@ impl log::Log for Logsy {
 
         if conf.echo {
             let mut stdout = StandardStream::stdout(ColorChoice::Always);
-            print!("[{}][", ts);
+            print!("[{ts}][");
             let _ = stdout.set_color(ColorSpec::new().set_fg(color));
             print!("{}", record.level());
             let _ = stdout.reset();
@@ -98,10 +98,10 @@ pub fn set_filename(filename: Option<&str>) -> Option<()> {
     if let Some(filename) = filename {
         let path = Path::new(filename);
         let parent_path: &str = path.parent()?.to_str()?;
-        if parent_path.len() > 0 {
+        if !parent_path.is_empty() {
             let result = std::fs::create_dir_all(parent_path);
             if let Err(err) = result {
-                eprintln!("Couldn't create {}: {}", parent_path, err);
+                eprintln!("Couldn't create {parent_path}: {err}");
                 return None;
             }
             let file = OpenOptions::new().create(true).append(true).open(filename).unwrap();
