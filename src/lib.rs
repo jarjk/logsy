@@ -3,14 +3,13 @@
 #[cfg(feature = "styled")]
 use anstyle::{AnsiColor, Color, Style};
 use log::{Level, LevelFilter, Metadata, Record};
-use std::fs::{File, OpenOptions};
-use std::io::Write;
-use std::path::Path;
 #[cfg(feature = "env")]
 use std::str::FromStr;
 use std::sync::Mutex;
 #[cfg(feature = "time")]
 use std::time::SystemTime;
+#[cfg(feature = "file")]
+use std::{fs, io::Write};
 
 type Res<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -19,7 +18,8 @@ struct Logsy(Mutex<LogsyConf>);
 struct LogsyConf {
     installed: bool,
     to_stderr: bool,
-    to_file: Option<File>,
+    #[cfg(feature = "file")]
+    to_file: Option<fs::File>,
     level: Option<Level>,
 }
 
@@ -40,6 +40,7 @@ impl log::Log for Logsy {
         let ts = String::new();
         let mod_p = record.module_path().unwrap_or_default();
         let msg = record.args();
+        #[allow(unused_mut)]
         let Ok(mut conf) = self.0.lock() else {
             eprintln!("ERROR: unable to acquire `LogsyConf` lock, not logging this: {record:?}");
             return;
@@ -50,7 +51,7 @@ impl log::Log for Logsy {
             Level::Debug => AnsiColor::Blue,
             Level::Info => AnsiColor::Green,
             Level::Warn => AnsiColor::Yellow,
-            Level::Error => AnsiColor::Red,
+            Level::Error => AnsiColor::BrightRed,
         };
 
         if conf.to_stderr {
@@ -67,11 +68,11 @@ impl log::Log for Logsy {
             let level = format!("{level_style}{:5}{level_style:#}", record.level());
 
             let ts = format!("{italic}{ts}{italic:#}");
-            eprintln!("{dim}[{ts}{dim:#}{level} {mod_p}{dim}]{dim:#} {msg}");
+            eprintln!("{dim}[{ts}{dim:#}{level} {italic}{mod_p}{italic:#}{dim}]{dim:#} {msg}");
         }
+        #[cfg(feature = "file")]
         if let Some(file) = &mut conf.to_file {
-            let _ = writeln!(file, "[{ts} {:5} {mod_p}] {msg}", record.level());
-            let _ = file.flush();
+            let _ = writeln!(file, "[{ts}{:5} {mod_p}] {msg}", record.level());
         }
     }
     fn flush(&self) {}
@@ -80,6 +81,7 @@ impl log::Log for Logsy {
 static LOGSY: Logsy = Logsy(Mutex::new(LogsyConf {
     installed: false,
     to_stderr: false,
+    #[cfg(feature = "file")]
     to_file: None,
     level: None,
 }));
@@ -133,19 +135,21 @@ pub fn to_console() {
 /// - if can't `ensure_installed`
 /// - if can't open log file
 /// - if can't access global state: can't lock mutex
-pub fn try_to_file(path: impl AsRef<Path>, append: bool) -> Res<()> {
+#[cfg(feature = "file")]
+pub fn try_to_file(path: impl AsRef<std::path::Path>, append: bool) -> Res<()> {
     ensure_installed()?;
 
     if let Some(dirname) = path.as_ref().parent()
+        && dirname.is_dir()
         && !dirname.exists()
     {
-        std::fs::create_dir(dirname)?;
+        fs::create_dir_all(dirname)?;
     }
-    let file = OpenOptions::new()
+    let file = fs::OpenOptions::new()
         .create(true)
         .write(true)
         .append(append)
-        .open(path)?;
+        .open(path.as_ref())?;
     LOGSY.0.lock()?.to_file = Some(file);
     Ok(())
 }
@@ -156,7 +160,8 @@ pub fn try_to_file(path: impl AsRef<Path>, append: bool) -> Res<()> {
 /// If parent dir doesn't exists, it will be created.
 /// # Panics
 /// errors of [`try_to_file`]
-pub fn to_file(path: impl AsRef<Path>, append: bool) {
+#[cfg(feature = "file")]
+pub fn to_file(path: impl AsRef<std::path::Path>, append: bool) {
     try_to_file(path, append).unwrap();
 }
 

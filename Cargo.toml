@@ -14,10 +14,11 @@ humantime = { version = "2.3.0", optional = true }
 log = "0.4.28"
 
 [features]
-default = ["time", "styled", "env"]
+default = ["time", "styled", "env", "file"]
 time = ["dep:humantime"]
 styled = ["dep:anstyle"]
 env = []
+file = []
 
 [dev-dependencies]
 tempdir = "0.3.7"
