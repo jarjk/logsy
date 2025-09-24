@@ -12,6 +12,8 @@ use std::sync::Mutex;
 #[cfg(feature = "time")]
 use std::time::SystemTime;
 
+type Res<T> = Result<T, Box<dyn std::error::Error>>;
+
 struct Logsy(Mutex<LogsyConf>);
 
 struct LogsyConf {
@@ -23,11 +25,9 @@ struct LogsyConf {
 
 impl log::Log for Logsy {
     fn enabled(&self, metadata: &Metadata) -> bool {
-        if let Some(level) = self.0.lock().unwrap().level {
-            metadata.level() <= level
-        } else {
-            false
-        }
+        self.0
+            .lock()
+            .is_ok_and(|mg| mg.level.is_some_and(|level| metadata.level() <= level))
     }
 
     fn log(&self, record: &Record) {
@@ -40,7 +40,10 @@ impl log::Log for Logsy {
         let ts = String::new();
         let mod_p = record.module_path().unwrap_or_default();
         let msg = record.args();
-        let mut conf = self.0.lock().unwrap();
+        let Ok(mut conf) = self.0.lock() else {
+            eprintln!("ERROR: unable to acquire `LogsyConf` lock, not logging this: {record:?}");
+            return;
+        };
         #[cfg(feature = "styled")]
         let color = match record.metadata().level() {
             Level::Trace => AnsiColor::Magenta,
@@ -82,15 +85,15 @@ static LOGSY: Logsy = Logsy(Mutex::new(LogsyConf {
 }));
 
 /// checks whether it's already installed, does it so if not
-/// # Panics
+/// # Errors
 /// - if can't access global state: can't lock mutex
 /// - if can't set logger
 /// - if `feature(env)` and `RUST_LOG` is an invalid log level
-fn ensure_installed() {
-    let installed = LOGSY.0.lock().unwrap().installed;
+fn ensure_installed() -> Res<()> {
+    let installed = LOGSY.0.lock()?.installed;
     if !installed {
-        LOGSY.0.lock().unwrap().installed = true;
-        log::set_logger(&LOGSY).unwrap();
+        LOGSY.0.lock()?.installed = true;
+        log::set_logger(&LOGSY).map_err(|e| e.to_string())?;
 
         #[allow(unused_mut)] // is used if `env`
         let mut log_level = LevelFilter::Info;
@@ -100,49 +103,75 @@ fn ensure_installed() {
                 panic!("{err}: invalid RUST_LOG env var value: {env_log_level:?}")
             });
         }
-        set_level(log_level);
+        try_set_level(log_level)?;
     }
+    Ok(())
+}
+
+/// Try to start logging to `stderr`
+/// # Errors
+/// - if can't `ensure_installed`
+/// - if can't access global state: can't lock mutex
+pub fn try_to_console() -> Res<()> {
+    ensure_installed()?;
+    LOGSY.0.lock()?.to_stderr = true;
+    Ok(())
 }
 
 /// Start logging to `stderr`
 /// # Panics
-/// - if can't `ensure_installed`
-/// - if can't access global state: can't lock mutex
+/// errors of [`try_to_console`]
 pub fn to_console() {
-    ensure_installed();
-    LOGSY.0.lock().unwrap().to_stderr = true;
+    try_to_console().unwrap();
 }
 
-/// Start logging into a specified file.
+/// Try to start logging to a specified file.\
 /// This function can be called again without restarting the app if you need
-/// (e.g. for implementing log rotation).
+/// (e.g. for implementing log rotation).\
 /// If parent dir doesn't exists, it will be created.
-/// # Panics
+/// # Errors
 /// - if can't `ensure_installed`
 /// - if can't open log file
 /// - if can't access global state: can't lock mutex
-pub fn to_file(path: impl AsRef<Path>, append: bool) {
-    ensure_installed();
+pub fn try_to_file(path: impl AsRef<Path>, append: bool) -> Res<()> {
+    ensure_installed()?;
 
     if let Some(dirname) = path.as_ref().parent()
         && !dirname.exists()
     {
-        std::fs::create_dir(dirname)
-            .unwrap_or_else(|err| panic!("couldn't create {dirname:?}: {err}"));
+        std::fs::create_dir(dirname)?;
     }
     let file = OpenOptions::new()
         .create(true)
         .write(true)
         .append(append)
-        .open(path)
-        .unwrap();
-    LOGSY.0.lock().unwrap().to_file = Some(file);
+        .open(path)?;
+    LOGSY.0.lock()?.to_file = Some(file);
+    Ok(())
+}
+
+/// Start logging to a specified file.\
+/// This function can be called again without restarting the app if you need
+/// (e.g. for implementing log rotation).\
+/// If parent dir doesn't exists, it will be created.
+/// # Panics
+/// errors of [`try_to_file`]
+pub fn to_file(path: impl AsRef<Path>, append: bool) {
+    try_to_file(path, append).unwrap();
+}
+
+/// Try to set log level filter
+/// # Errors
+/// if can't access global state: can't acquire mutex
+pub fn try_set_level(filter: LevelFilter) -> Res<()> {
+    log::set_max_level(filter);
+    LOGSY.0.lock()?.level = filter.to_level();
+    Ok(())
 }
 
 /// Set log level filter
 /// # Panics
-/// if can't access global state: can't lock mutex
+/// errors of [`try_set_level`]
 pub fn set_level(filter: LevelFilter) {
-    log::set_max_level(filter);
-    LOGSY.0.lock().unwrap().level = filter.to_level();
+    try_set_level(filter).unwrap();
 }
