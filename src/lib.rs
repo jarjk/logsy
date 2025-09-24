@@ -43,18 +43,18 @@ impl log::Log for Logsy {
         let mut conf = self.0.lock().unwrap();
         #[cfg(feature = "styled")]
         let color = match record.metadata().level() {
-            Level::Trace => Some(Color::Ansi(AnsiColor::Magenta)),
-            Level::Debug => Some(Color::Ansi(AnsiColor::Blue)),
-            Level::Info => Some(Color::Ansi(AnsiColor::Green)),
-            Level::Warn => Some(Color::Ansi(AnsiColor::Yellow)),
-            Level::Error => Some(Color::Ansi(AnsiColor::Red)),
+            Level::Trace => AnsiColor::Magenta,
+            Level::Debug => AnsiColor::Blue,
+            Level::Info => AnsiColor::Green,
+            Level::Warn => AnsiColor::Yellow,
+            Level::Error => AnsiColor::Red,
         };
 
         if conf.to_stderr {
             #[cfg(feature = "styled")]
             let [level_style, dim, italic] = {
                 [
-                    Style::new().fg_color(color).bold(),
+                    Style::new().fg_color(Some(Color::Ansi(color))).bold(),
                     Style::new().dimmed(),
                     Style::new().italic(),
                 ]
