@@ -1,16 +1,16 @@
-Logsy
-=============
+# Logsy
+
 Just logging as it should be. While it's well under 200 lines of source code, it covers almost any practical use case you could ever encounter.
 
 ## The Looks
 
 <!-- This section was created with the aha Ansi HTML Adapter. https://github.com/theZiz/aha -->
 <pre>
-<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557600Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:magenta;">TRACE</span> colors<span style="color:gray;">]</span> Library function called
-<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557615Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:blue;">DEBUG</span> colors<span style="color:gray;">]</span> Auth attempt
-<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557623Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;">INFO </span> colors<span style="color:gray;">]</span> Application has just started
-<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557630Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:yellow;">WARN </span> colors<span style="color:gray;">]</span> Dereferencing null pointers harms
-<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557637Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:red;">ERROR</span> colors<span style="color:gray;">]</span> This application got a boo-boo and going to be terminated
+<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557600Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:magenta;">TRACE</span> <span style="color:gray;">colors]</span> Library function called
+<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557615Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:blue;">DEBUG</span> <span style="color:gray;">colors]</span> Auth attempt
+<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557623Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:green;">INFO </span> <span style="color:gray;">colors]</span> Application has just started
+<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557630Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:yellow;">WARN </span> <span style="color:gray;">colors]</span> Dereferencing null pointers harms
+<span style="color:gray;">[<span style="font-style:italic;">2025-09-23T17:55:59.557637Z </span></span><span style="font-weight:bold;"></span><span style="font-weight:bold;color:red;">ERROR</span> <span style="color:gray;">colors]</span> This application got a boo-boo and going to be terminated
 </pre>
 
 ## Common concepts
